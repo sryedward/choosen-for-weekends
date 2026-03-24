@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>多语言风格罗盘 | 可爱星星指针</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f3ea, #efe2d4);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+            padding: 20px;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 252, 245, 0.92);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+        .lang-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            background: #e8dccc;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #5a4a2e;
+            transition: 0.2s;
+        }
+        .lang-btn.active {
+            background: #c9aa6f;
+            color: white;
+        }
+
+        .main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+        }
+
+        .wheel-area {
+            flex: 1.2;
+            min-width: 350px;
+            text-align: center;
+            position: relative;
+        }
+        .title-box {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fff0df;
+            border-radius: 50px;
+            display: inline-block;
+            width: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .title-zh {
+            font-family: '华文楷书', '楷体', 'STKaiti', 'KaiTi', cursive;
+        }
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            background: #fffef5;
+            border-radius: 50%;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0 15px;
+        }
+        button {
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+        }
+        .spin-btn {
+            background: #ffb85e;
+            color: white;
+        }
+        .random-btn {
+            background: #c5ddb5;
+            color: #3a5a2a;
+        }
+        .result {
+            background: #fff6e8;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .history-area {
+            flex: 0.9;
+            min-width: 280px;
+            background: #faf3e8;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            position: relative;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2cba4;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .clear-btn {
+            background: #e0c8a8;
+            color: #6b4a2a;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+        }
+        .record-list {
+            max-height: 450px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .record-item {
+            background: rgba(235, 215, 180, 0.4);
+            margin: 8px 0;
+            padding: 10px 12px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .record-date {
+            background: #e7d5b9;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .record-style {
+            background: #fcf3e2;
+            padding: 3px 12px;
+            border-radius: 20px;
+            max-width: 200px;
+            text-align: center;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #b28a60;
+            padding: 30px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #9e8568;
+        }
+        
+        /* 飞行动画元素 */
+        .flying-element {
+            position: fixed;
+            z-index: 1000;
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            background: #ffb85e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+        }
+        
+        /* 记录高亮闪烁 */
+        @keyframes highlightPulse {
+            0% { background: rgba(235, 215, 180, 0.4); transform: scale(1); }
+            50% { background: #ffb85e; transform: scale(1.02); box-shadow: 0 0 10px rgba(255,180,70,0.5); }
+            100% { background: rgba(235, 215, 180, 0.4); transform: scale(1); }
+        }
+        .record-highlight {
+            animation: highlightPulse 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="lang-bar">
+        <button class="lang-btn" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">English</button>
+        <button class="lang-btn" data-lang="ko">한국어</button>
+    </div>
+
+    <div class="main">
+        <div class="wheel-area">
+            <div class="title-box">
+                <span id="titleZh" class="title-zh">📌 今天要做的事</span>
+                <span id="titleEn" style="display:none">📌 Today's Mission</span>
+                <span id="titleKo" style="display:none">📌 오늘 할 일</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="wheel" width="550" height="550"></canvas>
+            </div>
+            <div class="btn-group">
+                <button class="spin-btn" id="spinBtn">🎡 <span id="spinText">转动星星指针</span></button>
+                <button class="random-btn" id="randomBtn">🎲 <span id="randomText">随机爱好</span></button>
+            </div>
+            <div class="result">
+                🎯 <span id="todayLabel">今日风格</span> : <strong id="currentStyle">—</strong>
+            </div>
+        </div>
+
+        <div class="history-area" id="historyArea">
+            <div class="history-header">
+                <h3 id="historyTitle">📅 记录</h3>
+                <button class="clear-btn" id="clearBtn">🗑 <span id="clearText">清空</span></button>
+            </div>
+            <div class="record-list" id="historyList">
+                <div class="empty-msg" id="emptyMsg">✨ 转动星星指针即记录 ✨</div>
+            </div>
+        </div>
+    </div>
+    <footer id="footer">✨ 点击转盘 · 可爱星星指针旋转 · 结果飞入记录栏 ✨</footer>
+</div>
+
+<script>
+    // ==================== 多语言文本 ====================
+    const texts = {
+        zh: { title: "📌 今天要做的事", today: "今日风格", spin: "转动星星指针", random: "随机爱好", clear: "清空", history: "📅 记录", empty: "✨ 转动星星指针即记录 ✨", footer: "✨ 点击转盘 · 可爱星星指针旋转 · 结果飞入记录栏 ✨", confirm: "清空所有记录？" },
+        en: { title: "📌 Today's Mission", today: "Today's Style", spin: "SPIN STAR", random: "Randomize", clear: "Clear", history: "📅 Records", empty: "✨ Spin the star to record ✨", footer: "✨ Click wheel · Cute star spins · Results fly to records ✨", confirm: "Clear all records?" },
+        ko: { title: "📌 오늘 할 일", today: "오늘의 스타일", spin: "별 바늘 돌리기", random: "랜덤 취미", clear: "삭제", history: "📅 기록", empty: "✨ 별 바늘을 돌리면 기록됨 ✨", footer: "✨ 휠 클릭 · 귀여운 별 회전 · 결과가 기록으로 날아감 ✨", confirm: "모든 기록을 삭제하시겠습니까?" }
+    };
+
+    // ==================== 兴趣库 ====================
+    const INTERESTS = [
+        { zh: "🎨 艺术创作", ko: "🎨 예술 창작" }, { zh: "📖 深度阅读", ko: "📖 깊이 읽기" },
+        { zh: "🏃 户外奔跑", ko: "🏃 야외 달리기" }, { zh: "🎧 音乐冥想", ko: "🎧 음악 명상" },
+        { zh: "🍳 烹饪美食", ko: "🍳 요리 미식" }, { zh: "💻 极客编码", ko: "💻 긱 코딩" },
+        { zh: "🧘 瑜伽静心", ko: "🧘 요가 정심" }, { zh: "📸 街拍光影", ko: "📸 스냅 사진" },
+        { zh: "🌿 园艺种植", ko: "🌿 원예 가꾸기" }, { zh: "🎲 桌游对战", ko: "🎲 보드게임" },
+        { zh: "✍️ 手帐记录", ko: "✍️ 저널링" }, { zh: "🎭 戏剧表演", ko: "🎭 연극 공연" },
+        { zh: "🔧 DIY手工", ko: "🔧 DIY 공예" }, { zh: "🐱 撸猫治愈", ko: "🐱 고양이 힐링" },
+        { zh: "🏋️ 力量训练", ko: "🏋️ 웨이트" }, { zh: "🌊 冲浪冒险", ko: "🌊 서핑" },
+        { zh: "✈️ 旅行探索", ko: "✈️ 여행" }, { zh: "🎮 电竞时刻", ko: "🎮 e스포츠" },
+        { zh: "🧩 智力解谜", ko: "🧩 퍼즐" }, { zh: "🎤 唱歌表演", ko: "🎤 노래" },
+        { zh: "💃 街舞律动", ko: "💃 댄스" }, { zh: "🏹 射箭", ko: "🏹 양궁" },
+        { zh: "🔭 观星", ko: "🔭 별 관측" }, { zh: "🚴 骑行", ko: "🚴 사이클링" }
+    ];
+    
+    const STYLES = {
+        zh: ["沉浸专注", "大胆突破", "佛系随缘", "雷厉风行", "幽默搞怪", "严谨计划", "灵感迸发", "社交达人", "极简高效", "温暖治愈"],
+        en: ["Deep Focus", "Bold Move", "Go with Flow", "Swift Action", "Playful Wit", "Meticulous", "Inspired", "Social Mode", "Minimal", "Warm Heart"],
+        ko: ["몰입 집중", "대담 돌파", "자연스러움", "신속 결단", "유머 감각", "철저 계획", "영감 폭발", "사교적", "미니멀", "따뜻함"]
+    };
+
+    // ==================== 全局变量 ====================
+    let lang = 'zh';
+    let segments = [];
+    let pointerAngle = 0;
+    let spinning = false;
+    let animId = null;
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const STORAGE_KEY = "StyleWheelRecords";
+
+    // ==================== 生成随机转盘 ====================
+    function genSegments() {
+        const count = Math.floor(Math.random() * 3) + 6;
+        const shuffled = [...INTERESTS];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const selected = shuffled.slice(0, count);
+        return selected.map(s => {
+            const styleIdx = Math.floor(Math.random() * STYLES.zh.length);
+            return {
+                zh: `${s.zh}·${STYLES.zh[styleIdx]}`,
+                ko: `${s.ko}·${STYLES.ko[styleIdx]}`,
+                en: `${s.zh.split(' ')[0]}·${STYLES.en[styleIdx]}`
+            };
+        });
+    }
+
+    // 两行文字格式化
+    function formatTwoLines(text) {
+        if (text.includes('·')) {
+            const parts = text.split('·');
+            if (parts[0].length > 12) {
+                return parts[0].slice(0, 10) + '..\n·' + parts[1];
+            }
+            return parts[0] + '\n·' + parts[1];
+        }
+        if (text.length > 14) {
+            const mid = Math.floor(text.length / 2);
+            return text.slice(0, mid) + '\n' + text.slice(mid);
+        }
+        return text;
+    }
+
+    // ==================== 绘制可爱星星指针 ====================
+    function drawStar(ctx, cx, cy, radius, angle, color) {
+        const spikes = 5;
+        const outerRadius = radius;
+        const innerRadius = radius * 0.45;
+        let rot = angle - Math.PI / 2;
+        ctx.beginPath();
+        for (let i = 0; i < spikes * 2; i++) {
+            const r = (i % 2 === 0) ? outerRadius : innerRadius;
+            const pointAngle = rot + (i * Math.PI / spikes);
+            const x = cx + Math.cos(pointAngle) * r;
+            const y = cy + Math.sin(pointAngle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // ==================== 绘制转盘和星星指针 ====================
+    function draw() {
+        if (!segments.length) return;
+        const n = segments.length;
+        const angleStep = (Math.PI * 2) / n;
+        const r = canvas.width / 2;
+        const cx = r, cy = r;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 绘制扇形 (圆盘固定不动)
+        for (let i = 0; i < n; i++) {
+            const start = i * angleStep;
+            const end = (i + 1) * angleStep;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, start, end);
+            ctx.fillStyle = `hsl(${35 + i * 25}, 60%, 72%)`;
+            ctx.fill();
+            ctx.strokeStyle = "#fff0e0";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(start + angleStep / 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            let txt = segments[i][lang];
+            let lines = formatTwoLines(txt).split('\n');
+            let fontSize = Math.max(10, Math.min(13, r / 13));
+            ctx.font = `bold ${fontSize}px "Segoe UI", "Noto Sans KR"`;
+            ctx.fillStyle = "#3a2c1c";
+            if (lines.length === 1) {
+                ctx.fillText(lines[0], r * 0.68, 5);
+            } else {
+                ctx.fillText(lines[0], r * 0.68, -4);
+                ctx.fillText(lines[1], r * 0.68, 12);
+            }
+            ctx.restore();
+        }
+        
+        // 绘制可爱的星星指针 (缩短一半，长度 = 半径的 36%)
+        const starLen = r * 0.36;
+        const starX = cx + Math.sin(pointerAngle) * starLen;
+        const starY = cy - Math.cos(pointerAngle) * starLen;
+        
+        // 绘制星星尾巴 (可爱的小光晕)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(starX, starY);
+        ctx.lineWidth = r * 0.025;
+        ctx.strokeStyle = "#f7b05e";
+        ctx.stroke();
+        
+        // 在尾巴上加小圆点装饰
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.045, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffcc88";
+        ctx.fill();
+        
+        // 绘制主星星指针
+        const starSize = r * 0.09;
+        drawStar(ctx, starX, starY, starSize, pointerAngle, "#FFD966");
+        
+        // 星星高光
+        ctx.beginPath();
+        ctx.arc(starX - starSize * 0.25, starY - starSize * 0.25, starSize * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFF5CC";
+        ctx.fill();
+        
+        // 中心可爱小星星
+        drawStar(ctx, cx, cy, r * 0.095, 0, "#f5d79c");
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.045, 0, Math.PI * 2);
+        ctx.fillStyle = "#c9692b";
+        ctx.fill();
+    }
+
+    // ==================== 获取当前指针指向的扇形索引 ====================
+    function getSelectedIdx() {
+        if (!segments.length) return 0;
+        const n = segments.length;
+        const angleStep = (Math.PI * 2) / n;
+        let pointerDir = pointerAngle;
+        while (pointerDir < 0) pointerDir += Math.PI * 2;
+        pointerDir %= (Math.PI * 2);
+        
+        for (let i = 0; i < n; i++) {
+            let start = i * angleStep;
+            let end = (i + 1) * angleStep;
+            if (pointerDir >= start && pointerDir < end) return i;
+        }
+        return 0;
+    }
+
+    // ==================== 飞行动画 ====================
+    function flyToRecord(styleText, targetElement) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const centerX = canvasRect.left + canvasRect.width / 2;
+        const centerY = canvasRect.top + canvasRect.height / 2;
+        
+        const targetRect = targetElement.getBoundingClientRect();
+        const targetX = targetRect.left + targetRect.width / 2;
+        const targetY = targetRect.top + 20;
+        
+        const flyer = document.createElement('div');
+        flyer.className = 'flying-element';
+        flyer.textContent = '⭐ ' + styleText;
+        flyer.style.left = centerX + 'px';
+        flyer.style.top = centerY + 'px';
+        flyer.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(flyer);
+        
+        flyer.offsetHeight;
+        
+        flyer.style.left = targetX + 'px';
+        flyer.style.top = targetY + 'px';
+        flyer.style.transform = 'translate(-50%, -50%) scale(0.6)';
+        flyer.style.opacity = '0.7';
+        
+        setTimeout(() => {
+            flyer.remove();
+            if (targetElement) {
+                targetElement.classList.add('record-highlight');
+                setTimeout(() => {
+                    targetElement.classList.remove('record-highlight');
+                }, 600);
+            }
+        }, 500);
+    }
+
+    // ==================== 添加记录并飞行动画 ====================
+    function addRecordWithFlyAnimation(styleObj, dateStr) {
+        const listDiv = document.getElementById('historyList');
+        const emptyMsg = listDiv.querySelector('.empty-msg');
+        if (emptyMsg) emptyMsg.remove();
+        
+        const styleText = styleObj[lang] || styleObj.zh;
+        
+        const recordDiv = document.createElement('div');
+        recordDiv.className = 'record-item';
+        recordDiv.innerHTML = `
+            <span class="record-date">${dateStr}</span>
+            <span class="record-style">⭐ ${styleText}</span>
+        `;
+        
+        if (listDiv.firstChild) {
+            listDiv.insertBefore(recordDiv, listDiv.firstChild);
+        } else {
+            listDiv.appendChild(recordDiv);
+        }
+        
+        recordDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        setTimeout(() => {
+            flyToRecord(styleText, recordDiv);
+        }, 50);
+    }
+
+    // ==================== 保存记录 ====================
+    function saveRecordWithFlyAnimation() {
+        const idx = getSelectedIdx();
+        if (!segments[idx]) return;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+        const record = {
+            date: dateStr,
+            style: { zh: segments[idx].zh, ko: segments[idx].ko, en: segments[idx].en },
+            time: Date.now()
+        };
+        let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        records.unshift(record);
+        if (records.length > 500) records = records.slice(0, 500);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        
+        addRecordWithFlyAnimation(record.style, dateStr);
+    }
+
+    function renderHistory() {
+        const records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const listDiv = document.getElementById('historyList');
+        if (!records.length) {
+            listDiv.innerHTML = `<div class="empty-msg">${texts[lang].empty}</div>`;
+            return;
+        }
+        listDiv.innerHTML = records.map(r => `
+            <div class="record-item">
+                <span class="record-date">${r.date}</span>
+                <span class="record-style">⭐ ${r.style[lang] || r.style.zh}</span>
+            </div>
+        `).join('');
+    }
+
+    function clearHistory() {
+        if (confirm(texts[lang].confirm)) {
+            localStorage.removeItem(STORAGE_KEY);
+            renderHistory();
+        }
+    }
+
+    // ==================== 转动星星指针动画 ====================
+    function spinPointer() {
+        if (spinning) return;
+        spinning = true;
+        const rounds = 6 + Math.random() * 10;
+        const duration = 1200;
+        const start = performance.now();
+        const startAngle = pointerAngle;
+        const targetAngle = startAngle + Math.PI * 2 * rounds + Math.random() * Math.PI * 2;
+        
+        function animate(now) {
+            const t = Math.min(1, (now - start) / duration);
+            const ease = 1 - Math.pow(1 - t, 3);
+            pointerAngle = startAngle + targetAngle * ease;
+            draw();
+            if (t < 1) {
+                animId = requestAnimationFrame(animate);
+            } else {
+                pointerAngle = (startAngle + targetAngle) % (Math.PI * 2);
+                draw();
+                spinning = false;
+                cancelAnimationFrame(animId);
+                saveRecordWithFlyAnimation();
+                document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+            }
+        }
+        if (animId) cancelAnimationFrame(animId);
+        animId = requestAnimationFrame(animate);
+    }
+
+    function randomize() {
+        if (spinning) return;
+        segments = genSegments();
+        draw();
+        document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+    }
+
+    // ==================== 语言切换 ====================
+    function setLanguage(l) {
+        lang = l;
+        document.getElementById('titleZh').style.display = l === 'zh' ? 'inline' : 'none';
+        document.getElementById('titleEn').style.display = l === 'en' ? 'inline' : 'none';
+        document.getElementById('titleKo').style.display = l === 'ko' ? 'inline' : 'none';
+        document.getElementById('todayLabel').innerText = texts[lang].today;
+        document.getElementById('spinText').innerText = texts[lang].spin;
+        document.getElementById('randomText').innerText = texts[lang].random;
+        document.getElementById('clearText').innerText = texts[lang].clear;
+        document.getElementById('historyTitle').innerHTML = texts[lang].history;
+        document.getElementById('footer').innerHTML = texts[lang].footer;
+        if (segments.length) {
+            document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+        }
+        renderHistory();
+        draw();
+    }
+
+    // ==================== 初始化 ====================
+    segments = genSegments();
+    pointerAngle = 0;
+    draw();
+    renderHistory();
+    document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+    
+    // 绑定事件
+    document.getElementById('spinBtn').onclick = spinPointer;
+    document.getElementById('randomBtn').onclick = randomize;
+    document.getElementById('clearBtn').onclick = clearHistory;
+    canvas.onclick = spinPointer;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            setLanguage(btn.dataset.lang);
+        };
+    });
+    document.querySelector('.lang-btn[data-lang="zh"]').classList.add('active');
+</script>
+</body>
+</html>
